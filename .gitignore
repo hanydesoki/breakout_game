@@ -1,0 +1,4 @@
+venv
+.idea
+__pycache__
+breakout_game/__pycache__
