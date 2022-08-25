@@ -1,3 +1,4 @@
+import random
 
 
 class ValueCycle:
@@ -13,6 +14,14 @@ class ValueCycle:
     def reset(self) -> None:
         self.direction = 1 if self.b > self.a else -1
         self.current_value = self.a
+
+    def set_random_value(self):
+        self.direction = random.choice([-1, 1])
+        d = abs(self.a - self.b)
+        min_value = min(self.a, self.b)
+        n = d // self.step
+
+        self.current_value = round(min_value + random.randint(0, n) * self.step)
 
     def __iter__(self):
         return self

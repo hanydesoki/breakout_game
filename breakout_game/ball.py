@@ -8,7 +8,7 @@ from .value_cycle import ValueCycle
 
 
 from typing import Union
-
+import random
 
 import math
 
@@ -28,8 +28,9 @@ class Ball(ScreenEvents):
         self.locked = True
         self.sticky = False
         self.angle_cycle = ValueCycle(-MAX_ANGLE, MAX_ANGLE, 2)
+        self.angle_cycle.set_random_value()
         self.launch_angle = MAX_ANGLE
-        self.x_vel, self.y_vel = self.get_speed_from_angle(self.launch_angle)
+        self.x_vel, self.y_vel = self.get_speed_from_angle(random.randint(-MAX_ANGLE, MAX_ANGLE))
 
         self.collision_enabled = True
 
@@ -176,7 +177,10 @@ class Ball(ScreenEvents):
     def lock(self) -> None:
         self.locked = True
         self.collision_enabled = True
-        self.angle_cycle.reset()
+        if not self.sticky:
+            self.angle_cycle.set_random_value()
+        else:
+            self.angle_cycle.reset()
 
     def update(self) -> None:
         self.manage_bonus_frames()

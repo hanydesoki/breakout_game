@@ -147,7 +147,7 @@ class Layout(ScreenEvents):
         self.ball.double_damage_frame = 0
         self.frame = 0
         self.star_spawn_frame = random.randint(FPS * 60 - 30, FPS * 60 + 30)
-        
+
     def input(self):
         if self.ball.locked and self.key_pressed(pygame.K_SPACE):
             self.ball.unlock()
