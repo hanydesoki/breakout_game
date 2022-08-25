@@ -136,6 +136,7 @@ class Ball(ScreenEvents):
 
     def lock(self) -> None:
         self.locked = True
+        self.collision_enabled = True
         self.angle_cycle.reset()
 
     def update(self) -> None:
