@@ -6,6 +6,7 @@ from .brick import Brick
 from .utils import circle_rectangle_intersection
 from .value_cycle import ValueCycle
 
+
 from typing import Union
 
 
@@ -25,11 +26,14 @@ class Ball(ScreenEvents):
         self.velocity = BALL_VELOCITY
 
         self.locked = True
+        self.sticky = False
         self.angle_cycle = ValueCycle(-MAX_ANGLE, MAX_ANGLE, 2)
         self.launch_angle = MAX_ANGLE
         self.x_vel, self.y_vel = self.get_speed_from_angle(self.launch_angle)
 
         self.collision_enabled = True
+
+        self.double_damage_frame = 0
 
     def move(self) -> None:
 
@@ -64,10 +68,13 @@ class Ball(ScreenEvents):
 
         # Top paddle collision
         if self.collide_with_paddle() and self.collision_enabled:
-            self.y = self.paddle.rect.top - self.radius
-            distance_ratio = (self.paddle.rect.centerx - self.x) / (self.paddle.width // 2)
-            new_angle = 90 + MAX_ANGLE * distance_ratio
-            self.x_vel, self.y_vel = self.get_speed_from_angle(new_angle)
+            if self.sticky:
+                self.lock()
+            else:
+                self.y = self.paddle.rect.top - self.radius
+                distance_ratio = (self.paddle.rect.centerx - self.x) / (self.paddle.width // 2)
+                new_angle = 90 + MAX_ANGLE * distance_ratio
+                self.x_vel, self.y_vel = self.get_speed_from_angle(new_angle)
 
         # Brick vertical collision
         collided_brick = self.collided_brick()
@@ -99,7 +106,11 @@ class Ball(ScreenEvents):
             self.y = self.radius
 
     def draw(self) -> None:
-        pygame.draw.circle(surface=self.screen, color=BALL_COLOR, center=(self.x, self.y), radius=self.radius)
+        color = BALL_COLOR_STICKY if self.sticky else BALL_COLOR
+        pygame.draw.circle(surface=self.screen, color=color, center=(self.x, self.y), radius=self.radius)
+        if self.double_damage_frame:
+            pygame.draw.circle(surface=self.screen, color=BALL_COLOR_DAMAGE, center=(self.x, self.y),
+                               radius=self.radius, width=2)
         if self.locked:
             radians_angle = math.radians(self.launch_angle)
             end_x = (self.x - math.sin(radians_angle) * LAUNCH_LINE_LENGTH)
@@ -131,8 +142,16 @@ class Ball(ScreenEvents):
 
     def unlock(self) -> None:
         self.locked = False
+        self.sticky = False
         self.x_vel, self.y_vel = self.get_speed_from_angle(self.launch_angle + 90)
         self.y = self.paddle.rect.top - 1 - self.radius
+
+    @property
+    def damage(self) -> int:
+        return 2 if self.double_damage_frame else 1
+
+    def manage_damage_frames(self) -> None:
+        self.double_damage_frame = max(self.double_damage_frame - 1, 0)
 
     def lock(self) -> None:
         self.locked = True
@@ -140,6 +159,7 @@ class Ball(ScreenEvents):
         self.angle_cycle.reset()
 
     def update(self) -> None:
+        self.manage_damage_frames()
         self.move()
         self.draw()
 

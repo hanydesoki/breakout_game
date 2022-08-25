@@ -5,9 +5,14 @@ from .paddle import Paddle
 from .ball import Ball
 from .brick import Brick
 from .settings import *
+from .bonus import LockBonus, DamageBonus, LiveBonus, AntiLiveBonus
+
+import random
 
 
 class Layout(ScreenEvents):
+
+    all_bonuses_names = ['Damage', 'Lock', 'Live', 'Antilive']
 
     def __init__(self):
         super().__init__()
@@ -26,15 +31,28 @@ class Layout(ScreenEvents):
         self.live_font = pygame.font.SysFont('arial', 20)
         self.win_lose_font = pygame.font.SysFont('arialblack', 30)
 
+        self.bonuses = []
+
     def reset_bricks(self) -> None:
 
         self.bricks = []
+
+        bonuses = {}
+
+        for bonus_name in self.all_bonuses_names:
+            while True:
+                new_pair = (random.randint(0, ROWS - 1), random.randint(0, COLS - 1))
+                if new_pair not in bonuses.values():
+                    bonuses[new_pair] = bonus_name
+                    break
 
         for row in range(ROWS):
             for col in range(COLS):
                 x = OFFSET_SIDE + col * (BRICK_WIDTH + BRICK_GAP)
                 y = OFFSET_TOP + row * (BRICK_HEIGHT + BRICK_GAP)
-                self.bricks.append(Brick(x, y, BRICK_WIDTH, BRICK_HEIGHT))
+                bonus = bonuses.get((row, col))
+                self.bricks.append(Brick(x, y, BRICK_WIDTH, BRICK_HEIGHT, self, bonus=bonus))
+
 
     def update_bricks(self) -> None:
         self.bricks = [brick for brick in self.bricks if brick.health > 0]
@@ -66,10 +84,10 @@ class Layout(ScreenEvents):
 
             self.reset_game()
 
-    def lose_life(self) -> None:
+    def lose_life(self, reset: bool = True) -> None:
         self.lives -= 1
 
-        if self.lives:
+        if self.lives and reset:
             self.ball.lock()
 
         if self.lives <= 0:
@@ -99,6 +117,25 @@ class Layout(ScreenEvents):
         if self.ball.locked and self.key_pressed(pygame.K_SPACE):
             self.ball.unlock()
 
+    def update_bonuses(self):
+        new_bonuses = []
+        for bonus in self.bonuses:
+            bonus.update()
+
+            if bonus.rect.colliderect(self.paddle.rect):
+                if isinstance(bonus, LockBonus):
+                    self.ball.sticky = True
+                elif isinstance(bonus, DamageBonus):
+                    self.ball.double_damage_frame = 60 * 20
+                elif isinstance(bonus, LiveBonus):
+                    self.lives += 1
+                elif isinstance(bonus, AntiLiveBonus):
+                    self.lose_life(reset=False)
+            else:
+                new_bonuses.append(bonus)
+
+        self.bonuses = new_bonuses
+
     def update(self) -> None:
         """Run every frame"""
         self.draw_background()
@@ -106,6 +143,7 @@ class Layout(ScreenEvents):
         self.ball.update()
         self.paddle.update()
         self.update_bricks()
+        self.update_bonuses()
         self.check_lose()
         self.check_win()
         self.draw_lives()

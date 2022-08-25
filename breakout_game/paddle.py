@@ -34,6 +34,7 @@ class Paddle(ScreenEvents):
         self.rect.left = max(0, self.rect.left)
         self.rect.right = min(self.screen_width, self.rect.right)
 
+
     def update(self) -> None:
         self.input()
         self.draw()
