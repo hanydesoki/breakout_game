@@ -4,6 +4,7 @@ from .screen_events import ScreenEvents
 from .settings import *
 from .brick import Brick
 from .utils import circle_rectangle_intersection
+from .value_cycle import ValueCycle
 
 from typing import Union
 
@@ -23,14 +24,24 @@ class Ball(ScreenEvents):
 
         self.velocity = BALL_VELOCITY
 
-        self.x_vel, self.y_vel = self.get_speed_from_angle(80)
+        self.locked = True
+        self.angle_cycle = ValueCycle(-MAX_ANGLE, MAX_ANGLE, 2)
+        self.launch_angle = MAX_ANGLE
+        self.x_vel, self.y_vel = self.get_speed_from_angle(self.launch_angle)
 
         self.collision_enabled = True
 
     def move(self) -> None:
+
+        if self.locked:
+            self.y = self.paddle.rect.top - self.radius
+            self.x = self.paddle.rect.centerx
+            self.launch_angle = next(self.angle_cycle)
+            return
+
         # Move ball horizontally
         self.x += self.x_vel
-        
+
         # Side paddle collision
         if self.collide_with_paddle() and self.collision_enabled:
             self.x_vel *= -1
@@ -89,6 +100,11 @@ class Ball(ScreenEvents):
 
     def draw(self) -> None:
         pygame.draw.circle(surface=self.screen, color=BALL_COLOR, center=(self.x, self.y), radius=self.radius)
+        if self.locked:
+            radians_angle = math.radians(self.launch_angle)
+            end_x = (self.x - math.sin(radians_angle) * LAUNCH_LINE_LENGHT)
+            end_y = self.y - math.cos(radians_angle) * LAUNCH_LINE_LENGHT
+            pygame.draw.line(self.screen, LAUNCH_LINE_COLOR, (self.x, self.y), (end_x, end_y))
 
     def get_speed_from_angle(self, degree_angle: float) -> tuple[float, float]:
         radians_angle = math.radians(degree_angle)
@@ -112,6 +128,15 @@ class Ball(ScreenEvents):
             elif circle_rectangle_intersection(circle_x=self.x, circle_y=self.y,
                                 radius=self.radius, rectangle=brick.rect):
                 return brick
+
+    def unlock(self) -> None:
+        self.locked = False
+        self.x_vel, self.y_vel = self.get_speed_from_angle(self.launch_angle + 90)
+        self.y = self.paddle.rect.top - 1 - self.radius
+
+    def lock(self) -> None:
+        self.locked = True
+        self.angle_cycle.reset()
 
     def update(self) -> None:
         self.move()

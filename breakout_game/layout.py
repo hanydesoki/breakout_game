@@ -40,9 +40,14 @@ class Layout(ScreenEvents):
     def draw_background(self) -> None:
         self.screen.blit(self.background_surf, (0, 0))
 
+    def input(self):
+        if self.ball.locked and self.key_pressed(pygame.K_SPACE):
+            self.ball.unlock()
+
     def update(self) -> None:
         """Run every frame"""
         self.draw_background()
+        self.input()
         self.paddle.update()
         self.ball.update()
         self.update_bricks()

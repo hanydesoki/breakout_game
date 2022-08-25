@@ -6,7 +6,7 @@ from .utils import color_gradient
 
 
 class Brick(ScreenEvents):
-    def __init__(self, x: int, y: int, width: int, height: int, health: int = 5):
+    def __init__(self, x: int, y: int, width: int, height: int, health: int = 3):
         super().__init__()
         self.x = x
         self.y = y

@@ -14,3 +14,11 @@ class ScreenEvents:
     @classmethod
     def update_events(cls, all_events) -> None:
         cls.all_events = all_events
+
+    def key_pressed(self, key) -> bool:
+        for event in self.all_events:
+            if event.type == pygame.KEYDOWN:
+                if event.key == key:
+                    return True
+
+        return False
