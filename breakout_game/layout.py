@@ -143,7 +143,11 @@ class Layout(ScreenEvents):
         self.paddle.rect.centerx = self.screen_center[0]
         self.ball.lock()
         self.bonuses = []
-
+        self.ball.star_frame = 0
+        self.ball.double_damage_frame = 0
+        self.frame = 0
+        self.star_spawn_frame = random.randint(FPS * 60 - 30, FPS * 60 + 30)
+        
     def input(self):
         if self.ball.locked and self.key_pressed(pygame.K_SPACE):
             self.ball.unlock()
