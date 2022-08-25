@@ -1,39 +1,47 @@
-from .layout import Layout
-
 import pygame
 
-import sys
+from .settings import *
+from .screen_events import ScreenEvents
+from .layout import Layout
+
 
 class Game:
-    """Class that manage basic pygame setup"""
-
-    SCREEN_WIDTH = 750
-    SCREEN_HEIGHT = 500
-
-    FPS = 60
-
+    """Class that manage pygame setup and the main loop."""
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
-        pygame.display.set_caption('Breakout')
+
+        pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        pygame.display.set_caption(GAME_TITLE)
+
         self.clock = pygame.time.Clock()
 
         self.layout = Layout()
 
+    def run(self) -> None:
+        """Main loop."""
 
-    def run(self):
+        run = True
 
-        while True:
+        while run:
+            # Get all events
+            all_events = pygame.event.get()
 
-            all_events = pygame.event.get() # Get all events
+            # Pass all events to every ScreenEvents objects
+            ScreenEvents.update_events(all_events)
 
-            for event in all_events: # Loop in all events
-                if event.type == pygame.QUIT: # Check if we hit exit button
-                    pygame.quit()
-                    sys.exit()
+            # Check quit window
+            for event in all_events:
+                if event.type == pygame.QUIT:
+                    run = False
 
-
+            # Update layout
             self.layout.update()
 
-            self.clock.tick(self.FPS)
+            # Update screen
             pygame.display.update()
+
+            # Delay loop to match FPS
+            self.clock.tick(FPS)
+
+        pygame.quit()
+        quit()

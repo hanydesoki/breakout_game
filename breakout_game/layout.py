@@ -1,49 +1,48 @@
-from .bar import Bar
-from .ball import Ball
-
 import pygame
 
-class Layout:
-    """Class that manage layout setup and interactions between objects"""
+from .screen_events import ScreenEvents
+from .paddle import Paddle
+from .ball import Ball
+from .brick import Brick
+from .settings import *
 
-    BACKGROUND_COLOR = (0, 0, 50)
 
-    INIT_BALL_ANGLE = 45
+class Layout(ScreenEvents):
 
     def __init__(self):
-        self.screen = pygame.display.get_surface()
-        self.background = pygame.Surface(self.screen.get_size())
-        self.background.fill(self.BACKGROUND_COLOR)
+        super().__init__()
 
-        self.bar = Bar()
+        self.paddle = Paddle(x=self.screen_width // 2, width=PADDLE_WIDTH)
+        self.bricks = []
+        self.reset_bricks()
 
-        ball_pos_x = self.bar.rect.centerx
-        ball_pos_y = self.bar.rect.top - Ball.RADIUS
+        self.background_surf = pygame.Surface(self.screen_size)
+        self.background_surf.fill(BACKGROUND_COLOR)
+        self.ball = Ball(x=self.paddle.rect.centerx, y=self.paddle.rect.top - BALL_RADIUS,
+                         radius=BALL_RADIUS, layout=self)
 
-        self.ball = Ball(self, self.bar, x=ball_pos_x, y=ball_pos_y)
-        self.ball.set_speeds_from_angle(self.INIT_BALL_ANGLE)
+    def reset_bricks(self) -> None:
 
-        self.launching = True
+        self.bricks = []
 
-    def set_ball_to_bar(self):
-        ball_pos_x = self.bar.rect.centerx
-        ball_pos_y = self.bar.rect.top - Ball.RADIUS
+        for row in range(ROWS):
+            for col in range(COLS):
+                x = OFFSET_SIDE + col * (BRICK_WIDTH + BRICK_GAP)
+                y = OFFSET_TOP + row * (BRICK_HEIGHT + BRICK_GAP)
+                self.bricks.append(Brick(x, y, BRICK_WIDTH, BRICK_HEIGHT))
 
-        self.ball.set_ball_pos(ball_pos_x, ball_pos_y)
+    def update_bricks(self) -> None:
+        self.bricks = [brick for brick in self.bricks if brick.health > 0]
 
-    def input(self):
-        if pygame.mouse.get_pressed()[0]:
-            self.launching = False
+        for brick in self.bricks:
+            brick.update()
 
-    def draw_background(self):
-        self.screen.blit(self.background, (0, 0))
+    def draw_background(self) -> None:
+        self.screen.blit(self.background_surf, (0, 0))
 
-    def update(self):
+    def update(self) -> None:
+        """Run every frame"""
         self.draw_background()
-        self.bar.update()
+        self.paddle.update()
         self.ball.update()
-
-        self.input()
-
-        if self.launching:
-            self.set_ball_to_bar()
+        self.update_bricks()

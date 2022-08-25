@@ -1,100 +1,119 @@
-from .bar import Bar
-from .utils import get_sign
-
 import pygame
+
+from .screen_events import ScreenEvents
+from .settings import *
+from .brick import Brick
+from .utils import circle_rectangle_intersection
+
+from typing import Union
+
 
 import math
 
-class Ball:
-    """Class that manage ball"""
-    RADIUS = 10
 
-    BALL_COLOR = (150, 150, 150)
-
-    SPEED = 4
-
-    MAX_ANGLE = 60
-
-    def __init__(self, layout, bar: Bar, x: int, y: int):
-        self.screen = pygame.display.get_surface()
-
+class Ball(ScreenEvents):
+    """Ball that move on it's own an collide with bricks, paddle and walls."""
+    def __init__(self, x: int, y: int, radius: int, layout):
+        super().__init__()
+        self.x = x
+        self.y = y
+        self.radius = radius
         self.layout = layout
+        self.paddle = layout.paddle
 
-        self.bar = bar
+        self.velocity = BALL_VELOCITY
 
-        self.rect = pygame.Rect((x, y, self.RADIUS * 2, self.RADIUS * 2))
+        self.x_vel, self.y_vel = self.get_speed_from_angle(80)
 
-        self.set_ball_pos(x, y)
+        self.collision_enabled = True
 
-    def set_speeds_from_angle(self, angle: float):
-        self.vy = max(1, self.SPEED * math.cos(math.radians(angle)))
-        self.vx = max(1, self.SPEED * math.sin(math.radians(angle)))
+    def move(self) -> None:
+        # Move ball horizontally
+        self.x += self.x_vel
+        
+        # Side paddle collision
+        if self.collide_with_paddle() and self.collision_enabled:
+            self.x_vel *= -1
+            self.collision_enabled = False
+            return
 
-        self.vy = -abs(self.vy)
+        # Brick horizontal collision
+        collided_brick = self.collided_brick()
+        if collided_brick is not None:
+            if self.x_vel <= 0:
+                self.x = collided_brick.rect.right + self.radius
+            else:
+                self.x = collided_brick.rect.left - self.radius
+            self.x_vel *= -1
 
-    def set_ball_pos(self, x: int, y: int):
-        self.rect.centerx = x
-        self.rect.centery = y
+            collided_brick.get_hit()
 
-    def move(self):
-        self.rect.centerx += self.vx
-        self.rect.centery += self.vy
+        # Move ball vertically
+        self.y += self.y_vel
 
-    def draw(self):
-        pygame.draw.circle(self.screen, self.BALL_COLOR, center=self.rect.center, radius=self.RADIUS)
+        # Top paddle collision
+        if self.collide_with_paddle() and self.collision_enabled:
+            self.y = self.paddle.rect.top - self.radius
+            distance_ratio = (self.paddle.rect.centerx - self.x) / (self.paddle.width // 2)
+            new_angle = 90 + MAX_ANGLE * distance_ratio
+            self.x_vel, self.y_vel = self.get_speed_from_angle(new_angle)
 
-    def wall_collisions(self):
+        # Brick vertical collision
+        collided_brick = self.collided_brick()
+        if collided_brick is not None:
+            if self.y_vel <= 0:
+                self.y = collided_brick.rect.bottom + self.radius
+            else:
+                self.y = collided_brick.rect.top - self.radius
+            self.y_vel *= -1
 
-        if self.rect.left <= 0: # Collision with left wall
-            self.rect.centerx = self.RADIUS + 1
-            self.vx *= -1
+            collided_brick.get_hit()
 
-        if self.rect.right >= self.screen.get_width(): # Collision with left wall
-            self.rect.centerx = self.screen.get_width() - self.RADIUS - 1
-            self.vx *= -1
+        self.boundaries_collisions()
 
-        if self.rect.top <= 0: # Collision with left wall
-            self.rect.centery = self.RADIUS + 1
-            self.vy *= -1
+    def boundaries_collisions(self) -> None:
+        # Left wall collision
+        if self.x - self.radius <= 0:
+            self.x_vel *= -1
+            self.x = self.radius
 
-    def bar_collisions(self):
-        if self.rect.colliderect(self.bar.rect) and not self.layout.launching:
-            self.rect.bottom = self.bar.rect.top
+        # Right wall collision
+        if self.x + self.radius >= self.screen_width:
+            self.x_vel *= -1
+            self.x = self.screen_width - self.radius
 
-            angle, direction = self.get_angle_from_bar_pos()
+        # Top wall collision
+        if self.y <= self.radius:
+            self.y_vel *= -1
+            self.y = self.radius
 
-            self.set_speeds_from_angle(angle)
+    def draw(self) -> None:
+        pygame.draw.circle(surface=self.screen, color=BALL_COLOR, center=(self.x, self.y), radius=self.radius)
 
-            self.vx = abs(self.vx) * direction
+    def get_speed_from_angle(self, degree_angle: float) -> tuple[float, float]:
+        radians_angle = math.radians(degree_angle)
+        x_vel = math.cos(radians_angle) * self.velocity
+        y_vel = - math.sin(radians_angle) * self.velocity
+        return x_vel, y_vel
 
-            #print(math.sqrt(self.vx**2 + self.vy**2))
+    def collide_with_paddle(self) -> bool:
 
+        if self.paddle.rect.collidepoint((self.x, self.y)):
+            return True
 
-    def get_angle_from_bar_pos(self):
-        bar_centerx = self.bar.rect.centerx
-        ball_centerx = self.rect.centerx
+        return circle_rectangle_intersection(circle_x=self.x, circle_y=self.y,
+                                             radius=self.radius, rectangle=self.paddle.rect)
 
-        dist = ball_centerx - bar_centerx
-        max_dist = self.bar.rect.left - bar_centerx
+    def collided_brick(self) -> Union[Brick, None]:
+        for brick in self.layout.bricks:
+            if brick.rect.collidepoint((self.x, self.y)):
+                return brick
 
-        angle = abs(self.MAX_ANGLE * dist / max_dist)
-        direction = get_sign(dist)
+            elif circle_rectangle_intersection(circle_x=self.x, circle_y=self.y,
+                                radius=self.radius, rectangle=brick.rect):
+                return brick
 
-        print('angle', angle)
-        print('dist', dist)
-        print('dir', direction)
-
-
-        return angle, direction
-
-    def check_collisions(self):
-        self.wall_collisions()
-        self.bar_collisions()
-
-    def update(self):
+    def update(self) -> None:
         self.move()
-        self.check_collisions()
         self.draw()
-
-
 
