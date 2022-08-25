@@ -142,6 +142,7 @@ class Layout(ScreenEvents):
         self.lives = LIVES
         self.paddle.rect.centerx = self.screen_center[0]
         self.ball.lock()
+        self.bonuses = []
 
     def input(self):
         if self.ball.locked and self.key_pressed(pygame.K_SPACE):
