@@ -102,8 +102,8 @@ class Ball(ScreenEvents):
         pygame.draw.circle(surface=self.screen, color=BALL_COLOR, center=(self.x, self.y), radius=self.radius)
         if self.locked:
             radians_angle = math.radians(self.launch_angle)
-            end_x = (self.x - math.sin(radians_angle) * LAUNCH_LINE_LENGHT)
-            end_y = self.y - math.cos(radians_angle) * LAUNCH_LINE_LENGHT
+            end_x = (self.x - math.sin(radians_angle) * LAUNCH_LINE_LENGTH)
+            end_y = self.y - math.cos(radians_angle) * LAUNCH_LINE_LENGTH
             pygame.draw.line(self.screen, LAUNCH_LINE_COLOR, (self.x, self.y), (end_x, end_y))
 
     def get_speed_from_angle(self, degree_angle: float) -> tuple[float, float]:

@@ -10,6 +10,7 @@ class ScreenEvents:
         self.screen_width = self.screen.get_width()
         self.screen_height = self.screen.get_height()
         self.screen_size = self.screen.get_size()
+        self.screen_center = (self.screen_width // 2, self.screen_height // 2)
 
     @classmethod
     def update_events(cls, all_events) -> None:
