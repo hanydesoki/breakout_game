@@ -43,10 +43,8 @@ class Layout(ScreenEvents):
             while True:
                 new_pair = (random.randint(0, ROWS - 1), random.randint(0, COLS - 1))
                 if new_pair not in bonuses.values():
-                    new_pair = (3, 0)
                     bonuses[new_pair] = bonus_name
                     break
-            break
 
         for row in range(ROWS):
             for col in range(COLS):
