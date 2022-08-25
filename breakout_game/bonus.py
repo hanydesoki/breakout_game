@@ -5,7 +5,7 @@ from .screen_events import ScreenEvents
 
 class Bonus(ScreenEvents):
 
-    speed = 3
+    speed = 2
 
     def __init__(self, x: int, y: int, layout):
         super().__init__()
@@ -62,10 +62,20 @@ class AntiLiveBonus(Bonus):
         self.rect = self.image.get_rect(center=(x, y))
 
 
+class StarBonus(Bonus):
+
+    def __init__(self, x: int, y: int, layout):
+        super(StarBonus, self).__init__(x, y, layout)
+        self.image = pygame.image.load('Assets/star.png').convert_alpha()
+        self.image.set_colorkey((255, 255, 255))
+        self.rect = self.image.get_rect(center=(x, y))
+
+
 BONUS_DICT = {
     'Lock': LockBonus,
     'Damage': DamageBonus,
     'Live': LiveBonus,
-    'Antilive': AntiLiveBonus
+    'Antilive': AntiLiveBonus,
+    'Star': StarBonus
 }
 

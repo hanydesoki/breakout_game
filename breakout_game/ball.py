@@ -37,6 +37,8 @@ class Ball(ScreenEvents):
 
         self.contact_x = 0
 
+        self.star_frame = 0
+
     def move(self) -> None:
 
         if self.locked:
@@ -57,11 +59,12 @@ class Ball(ScreenEvents):
         # Brick horizontal collision
         collided_brick = self.collided_brick()
         if collided_brick is not None:
-            if self.x_vel <= 0:
-                self.x = collided_brick.rect.right + self.radius
-            else:
-                self.x = collided_brick.rect.left - self.radius
-            self.x_vel *= -1
+            if not self.star_frame:
+                if self.x_vel <= 0:
+                    self.x = collided_brick.rect.right + self.radius
+                else:
+                    self.x = collided_brick.rect.left - self.radius
+                self.x_vel *= -1
 
             collided_brick.get_hit()
 
@@ -83,11 +86,12 @@ class Ball(ScreenEvents):
         # Brick vertical collision
         collided_brick = self.collided_brick()
         if collided_brick is not None:
-            if self.y_vel <= 0:
-                self.y = collided_brick.rect.bottom + self.radius
-            else:
-                self.y = collided_brick.rect.top - self.radius
-            self.y_vel *= -1
+            if not self.star_frame:
+                if self.y_vel <= 0:
+                    self.y = collided_brick.rect.bottom + self.radius
+                else:
+                    self.y = collided_brick.rect.top - self.radius
+                self.y_vel *= -1
 
             collided_brick.get_hit()
 
@@ -112,9 +116,16 @@ class Ball(ScreenEvents):
     def draw(self) -> None:
         color = BALL_COLOR_STICKY if self.sticky else BALL_COLOR
         pygame.draw.circle(surface=self.screen, color=color, center=(self.x, self.y), radius=self.radius)
+
         if self.double_damage_frame:
             pygame.draw.circle(surface=self.screen, color=BALL_COLOR_DAMAGE, center=(self.x, self.y),
                                radius=self.radius, width=2)
+
+        if self.star_frame:
+            pygame.draw.circle(surface=self.screen, color=BALL_STAR_COLORS[self.star_frame // 5 % 3],
+                               center=(self.x, self.y),
+                               radius=self.radius + 3, width=3)
+
         if self.locked:
             radians_angle = math.radians(self.launch_angle)
             line_length = LAUNCH_LINE_LENGTH_STICKY if self.sticky else LAUNCH_LINE_LENGTH
@@ -156,8 +167,11 @@ class Ball(ScreenEvents):
     def damage(self) -> int:
         return 2 if self.double_damage_frame else 1
 
-    def manage_damage_frames(self) -> None:
-        self.double_damage_frame = max(self.double_damage_frame - 1, 0)
+    def manage_bonus_frames(self) -> None:
+        if not self.star_frame:
+            self.double_damage_frame = max(self.double_damage_frame - 1, 0)
+
+        self.star_frame = max(self.star_frame - 1, 0)
 
     def lock(self) -> None:
         self.locked = True
@@ -165,7 +179,7 @@ class Ball(ScreenEvents):
         self.angle_cycle.reset()
 
     def update(self) -> None:
-        self.manage_damage_frames()
+        self.manage_bonus_frames()
         self.move()
         self.draw()
 
