@@ -12,7 +12,7 @@ import random
 
 class Layout(ScreenEvents):
 
-    all_bonuses_names = ['Damage', 'Lock', 'Live', 'Antilive']
+    all_bonuses_names = ['Lock', 'Damage', 'Live', 'Antilive']
 
     def __init__(self):
         super().__init__()
@@ -26,7 +26,7 @@ class Layout(ScreenEvents):
         self.ball = Ball(x=self.paddle.rect.centerx, y=self.paddle.rect.top - BALL_RADIUS,
                          radius=BALL_RADIUS, layout=self)
 
-        self.lives = 3
+        self.lives = 2
 
         self.live_font = pygame.font.SysFont('arial', 20)
         self.win_lose_font = pygame.font.SysFont('arialblack', 30)
@@ -43,8 +43,10 @@ class Layout(ScreenEvents):
             while True:
                 new_pair = (random.randint(0, ROWS - 1), random.randint(0, COLS - 1))
                 if new_pair not in bonuses.values():
+                    new_pair = (3, 0)
                     bonuses[new_pair] = bonus_name
                     break
+            break
 
         for row in range(ROWS):
             for col in range(COLS):
@@ -52,7 +54,6 @@ class Layout(ScreenEvents):
                 y = OFFSET_TOP + row * (BRICK_HEIGHT + BRICK_GAP)
                 bonus = bonuses.get((row, col))
                 self.bricks.append(Brick(x, y, BRICK_WIDTH, BRICK_HEIGHT, self, bonus=bonus))
-
 
     def update_bricks(self) -> None:
         self.bricks = [brick for brick in self.bricks if brick.health > 0]
@@ -72,6 +73,7 @@ class Layout(ScreenEvents):
     def check_lose(self) -> None:
         if self.ball.y - self.ball.radius > self.screen_height + 10:
             self.lose_life()
+            self.ball.contact_x = 0
 
     def check_win(self) -> None:
         if len(self.bricks) == 0:
@@ -140,9 +142,9 @@ class Layout(ScreenEvents):
         """Run every frame"""
         self.draw_background()
         self.input()
-        self.ball.update()
         self.paddle.update()
         self.update_bricks()
+        self.ball.update()
         self.update_bonuses()
         self.check_lose()
         self.check_win()

@@ -3,7 +3,7 @@ import pygame
 from .screen_events import ScreenEvents
 from .settings import *
 from .brick import Brick
-from .utils import circle_rectangle_intersection
+from .utils import circle_rectangle_intersection, clamp_value
 from .value_cycle import ValueCycle
 
 
@@ -35,11 +35,13 @@ class Ball(ScreenEvents):
 
         self.double_damage_frame = 0
 
+        self.contact_x = 0
+
     def move(self) -> None:
 
         if self.locked:
             self.y = self.paddle.rect.top - self.radius
-            self.x = self.paddle.rect.centerx
+            self.x = self.paddle.rect.centerx + self.contact_x
             self.launch_angle = next(self.angle_cycle)
             return
 
@@ -69,6 +71,8 @@ class Ball(ScreenEvents):
         # Top paddle collision
         if self.collide_with_paddle() and self.collision_enabled:
             if self.sticky:
+                self.contact_x = clamp_value(self.x - self.paddle.rect.centerx, -self.paddle.width // 2 + self.radius,
+                                             self.paddle.width // 2 - self.radius)
                 self.lock()
             else:
                 self.y = self.paddle.rect.top - self.radius
@@ -113,8 +117,9 @@ class Ball(ScreenEvents):
                                radius=self.radius, width=2)
         if self.locked:
             radians_angle = math.radians(self.launch_angle)
-            end_x = (self.x - math.sin(radians_angle) * LAUNCH_LINE_LENGTH)
-            end_y = self.y - math.cos(radians_angle) * LAUNCH_LINE_LENGTH
+            line_length = LAUNCH_LINE_LENGTH_STICKY if self.sticky else LAUNCH_LINE_LENGTH
+            end_x = (self.x - math.sin(radians_angle) * line_length)
+            end_y = self.y - math.cos(radians_angle) * line_length
             pygame.draw.line(self.screen, LAUNCH_LINE_COLOR, (self.x, self.y), (end_x, end_y))
 
     def get_speed_from_angle(self, degree_angle: float) -> tuple[float, float]:
@@ -145,6 +150,7 @@ class Ball(ScreenEvents):
         self.sticky = False
         self.x_vel, self.y_vel = self.get_speed_from_angle(self.launch_angle + 90)
         self.y = self.paddle.rect.top - 1 - self.radius
+        self.contact_x = 0
 
     @property
     def damage(self) -> int:
