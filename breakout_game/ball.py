@@ -40,6 +40,8 @@ class Ball(ScreenEvents):
 
         self.star_frame = 0
 
+        self.launch_frame = 5
+
     def move(self) -> None:
 
         if self.locked:
@@ -53,7 +55,17 @@ class Ball(ScreenEvents):
 
         # Side paddle collision
         if self.collide_with_paddle() and self.collision_enabled:
-            self.x_vel *= -1
+            if self.x < self.paddle.rect.centerx:
+                if self.x_vel < 0:
+                    self.x_vel *= 2
+                else:
+                    self.x_vel *= 2
+            else:
+                if self.x_vel < 0:
+                    self.x_vel *= -1
+                else:
+                    self.x_vel *= 2
+
             self.collision_enabled = False
             return
 
@@ -177,6 +189,7 @@ class Ball(ScreenEvents):
     def lock(self) -> None:
         self.locked = True
         self.collision_enabled = True
+        self.launch_frame = 5
         if not self.sticky:
             self.angle_cycle.set_random_value()
         else:

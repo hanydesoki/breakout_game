@@ -148,8 +148,9 @@ class Layout(ScreenEvents):
         self.frame = 0
         self.star_spawn_frame = random.randint(FPS * 60 - 30, FPS * 60 + 30)
 
+
     def input(self):
-        if self.ball.locked and self.key_pressed(pygame.K_SPACE):
+        if self.ball.locked and self.key_pressed(pygame.K_SPACE) and self.ball.launch_frame == 0:
             self.ball.unlock()
 
     def update_bonuses(self):
@@ -181,6 +182,8 @@ class Layout(ScreenEvents):
     def update_frame(self):
         if not self.ball.locked:
             self.frame += 1
+        else:
+            self.ball.launch_frame = max(self.ball.launch_frame - 1, 0)
 
     def update(self) -> None:
         """Run every frame"""
