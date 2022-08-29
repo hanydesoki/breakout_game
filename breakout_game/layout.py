@@ -8,6 +8,7 @@ from .brick import Brick
 from .settings import *
 from .bonus import LockBonus, DamageBonus, LiveBonus, AntiLiveBonus, StarBonus
 from .screen_shaker import ScreenShaker
+from .utils import color_gradient
 
 import random
 
@@ -26,7 +27,7 @@ class Layout(ScreenEvents, ScreenShaker):
 
         self.level_number = 1
 
-        self.heart_levels = [2, 6]
+        self.heart_levels = [1, 3, 6]
 
         self.load_custom_level()
 
@@ -37,7 +38,6 @@ class Layout(ScreenEvents, ScreenShaker):
 
         self.lives = LIVES
 
-        self.live_font = pygame.font.SysFont('arial', 20)
         self.win_lose_font = pygame.font.SysFont('arialblack', 30)
 
         self.bonuses = []
@@ -156,12 +156,15 @@ class Layout(ScreenEvents, ScreenShaker):
         self.screen.blit(self.background_surf, (0, 0))
 
     def draw_lives(self):
-        live_text = self.live_font.render('o' * self.lives, True, (0, 0, 0))
-        live_rect = live_text.get_rect(center=self.paddle.rect.center)
-        live_rect.x += self.offset_x
-        live_rect.y += self.offset_y
+        for i in range(self.lives - 1):
+            rect = self.paddle.rect.copy()
+            rect.x += PADDLE_LIVE_WIDTH * i + self.offset_x
+            rect.y += PADDLE_LIVE_WIDTH * i + self.offset_y
+            rect.width -= 2 * i * PADDLE_LIVE_WIDTH
+            rect.height -= 2 * i * PADDLE_LIVE_WIDTH
+            color = color_gradient(PADDLE_MAX_LIVE_COLOR, PADDLE_MIN_LIVE_COLOR, i - 1, MAX_LIVES - 1)
 
-        self.screen.blit(live_text, live_rect)
+            pygame.draw.rect(self.screen, rect=rect, color=color, width=PADDLE_LIVE_WIDTH)
 
     def check_lose(self) -> None:
         if self.ball.y - self.ball.radius > self.screen_height + 10:
@@ -179,6 +182,8 @@ class Layout(ScreenEvents, ScreenShaker):
 
             self.level_number += 1
 
+            self.reset_game(reset_live=False)
+
             if self.level_number > NUMBER_OF_LEVELS:
                 win_text = self.win_lose_font.render('Congratulation!', True, (255, 255, 255))
                 win_rect = win_text.get_rect(midtop=win_rect.midbottom)
@@ -188,7 +193,7 @@ class Layout(ScreenEvents, ScreenShaker):
                 pygame.time.delay(2000)
                 self.level_number = 1
 
-            self.reset_game()
+                self.reset_game()
 
     def lose_life(self, reset: bool = True) -> None:
         self.lives -= 1
@@ -215,9 +220,13 @@ class Layout(ScreenEvents, ScreenShaker):
 
             self.reset_game()
 
-    def reset_game(self):
+    def gain_life(self) -> None:
+        self.lives = min(self.lives + 1, MAX_LIVES)
+
+    def reset_game(self, reset_live: bool = True):
         self.load_custom_level()
-        # self.lives = LIVES
+        if reset_live:
+            self.lives = LIVES
         self.paddle.rect.centerx = self.screen_center[0]
         self.ball.lock()
         self.bonuses = []
@@ -232,11 +241,14 @@ class Layout(ScreenEvents, ScreenShaker):
         if self.ball.locked and self.key_pressed(pygame.K_SPACE) and self.ball.launch_frame == 0:
             self.ball.unlock()
 
-        #if self.key_pressed(pygame.K_x):
-        #    self.explode_tnt_brick()
+        # if self.key_pressed(pygame.K_x):
+        #     self.explode_tnt_brick()
 
-        if self.key_pressed(pygame.K_c):
-            ScreenShaker.shake_screen(10, 10)
+        # if self.key_pressed(pygame.K_c):
+        #     ScreenShaker.shake_screen(10, 10)
+
+        # if self.key_pressed(pygame.K_g):
+        #     self.bonuses.append(LiveBonus(300, 50, self))
 
     def update_bonuses(self):
         new_bonuses = []
@@ -249,7 +261,7 @@ class Layout(ScreenEvents, ScreenShaker):
                 elif isinstance(bonus, DamageBonus):
                     self.ball.double_damage_frame = 60 * 20
                 elif isinstance(bonus, LiveBonus):
-                    self.lives += 1
+                    self.gain_life()
                 elif isinstance(bonus, AntiLiveBonus):
                     self.lose_life(reset=False)
                 elif isinstance(bonus, StarBonus):
