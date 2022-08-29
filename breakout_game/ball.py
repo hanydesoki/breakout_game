@@ -5,7 +5,7 @@ from .settings import *
 from .brick import Brick
 from .utils import circle_rectangle_intersection, clamp_value
 from .value_cycle import ValueCycle
-
+from .screen_shaker import ScreenShaker
 
 from typing import Union
 import random
@@ -13,7 +13,7 @@ import random
 import math
 
 
-class Ball(ScreenEvents):
+class Ball(ScreenEvents, ScreenShaker):
     """Ball that move on it's own an collide with bricks, paddle and walls."""
     def __init__(self, x: int, y: int, radius: int, layout):
         super().__init__()
@@ -59,7 +59,7 @@ class Ball(ScreenEvents):
                 if self.x_vel < 0:
                     self.x_vel *= 2
                 else:
-                    self.x_vel *= 2
+                    self.x_vel *= -1
             else:
                 if self.x_vel < 0:
                     self.x_vel *= -1
@@ -78,6 +78,13 @@ class Ball(ScreenEvents):
                 else:
                     self.x = collided_brick.rect.left - self.radius
                 self.x_vel *= -1
+            else:
+                if collided_brick.unbreakable:
+                    if self.x_vel <= 0:
+                        self.x = collided_brick.rect.right + self.radius
+                    else:
+                        self.x = collided_brick.rect.left - self.radius
+                    self.x_vel *= -1
 
             collided_brick.get_hit()
 
@@ -105,6 +112,13 @@ class Ball(ScreenEvents):
                 else:
                     self.y = collided_brick.rect.top - self.radius
                 self.y_vel *= -1
+            else:
+                if collided_brick.unbreakable:
+                    if self.y_vel <= 0:
+                        self.y = collided_brick.rect.bottom + self.radius
+                    else:
+                        self.y = collided_brick.rect.top - self.radius
+                    self.y_vel *= -1
 
             collided_brick.get_hit()
 
@@ -128,23 +142,24 @@ class Ball(ScreenEvents):
 
     def draw(self) -> None:
         color = BALL_COLOR_STICKY if self.sticky else BALL_COLOR
-        pygame.draw.circle(surface=self.screen, color=color, center=(self.x, self.y), radius=self.radius)
+        center = (self.x + self.offset_x, self.y + self.offset_y)
+        pygame.draw.circle(surface=self.screen, color=color, center=center, radius=self.radius)
 
         if self.double_damage_frame:
-            pygame.draw.circle(surface=self.screen, color=BALL_COLOR_DAMAGE, center=(self.x, self.y),
+            pygame.draw.circle(surface=self.screen, color=BALL_COLOR_DAMAGE, center=center,
                                radius=self.radius, width=2)
 
         if self.star_frame:
             pygame.draw.circle(surface=self.screen, color=BALL_STAR_COLORS[self.star_frame // 5 % 3],
-                               center=(self.x, self.y),
+                               center=center,
                                radius=self.radius + 3, width=3)
 
         if self.locked:
             radians_angle = math.radians(self.launch_angle)
             line_length = LAUNCH_LINE_LENGTH_STICKY if self.sticky else LAUNCH_LINE_LENGTH
-            end_x = (self.x - math.sin(radians_angle) * line_length)
-            end_y = self.y - math.cos(radians_angle) * line_length
-            pygame.draw.line(self.screen, LAUNCH_LINE_COLOR, (self.x, self.y), (end_x, end_y))
+            end_x = (self.x - math.sin(radians_angle) * line_length) + self.offset_x
+            end_y = self.y - math.cos(radians_angle) * line_length + self.offset_y
+            pygame.draw.line(self.screen, LAUNCH_LINE_COLOR, center, (end_x, end_y))
 
     def get_speed_from_angle(self, degree_angle: float) -> tuple[float, float]:
         radians_angle = math.radians(degree_angle)

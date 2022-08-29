@@ -3,6 +3,7 @@ import pygame
 from .settings import *
 from .screen_events import ScreenEvents
 from .layout import Layout
+from .screen_shaker import ScreenShaker
 
 
 class Game:
@@ -36,6 +37,9 @@ class Game:
 
             # Update layout
             self.layout.update()
+
+            # Update screen shaker
+            ScreenShaker.update()
 
             # Update screen
             pygame.display.update()

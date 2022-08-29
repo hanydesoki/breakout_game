@@ -1,10 +1,11 @@
 import pygame
 
 from .screen_events import ScreenEvents
+from .screen_shaker import ScreenShaker
 from .settings import *
 
 
-class Paddle(ScreenEvents):
+class Paddle(ScreenEvents, ScreenShaker):
     """Paddle that can be controlled and drawn"""
     def __init__(self, x: int, width: int):
         super().__init__()
@@ -16,16 +17,18 @@ class Paddle(ScreenEvents):
 
         self.surf.fill(PADDLE_COLOR)
 
+        self.speed = PADDLE_SPEED
+
     def draw(self) -> None:
-        self.screen.blit(self.surf, self.rect)
+        self.screen.blit(self.surf, (self.rect.x + self.offset_x, self.rect.y + self.offset_y))
 
     def input(self) -> None:
         keys = pygame.key.get_pressed()
 
         if keys[pygame.K_q]:
-            self.rect.centerx -= PADDLE_SPEED
+            self.rect.centerx -= self.speed
         if keys[pygame.K_d]:
-            self.rect.centerx += PADDLE_SPEED
+            self.rect.centerx += self.speed
 
         # Check wall collisions
         self.check_wall_collisions()

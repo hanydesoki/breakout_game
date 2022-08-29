@@ -1,4 +1,5 @@
 import pygame
+import cv2
 
 from .screen_events import ScreenEvents
 from .paddle import Paddle
@@ -6,11 +7,12 @@ from .ball import Ball
 from .brick import Brick
 from .settings import *
 from .bonus import LockBonus, DamageBonus, LiveBonus, AntiLiveBonus, StarBonus
+from .screen_shaker import ScreenShaker
 
 import random
 
 
-class Layout(ScreenEvents):
+class Layout(ScreenEvents, ScreenShaker):
 
     all_bonuses_names = ['Lock', 'Damage', 'Live', 'Antilive']
 
@@ -20,7 +22,13 @@ class Layout(ScreenEvents):
         self.paddle = Paddle(x=self.screen_width // 2, width=PADDLE_WIDTH)
         self.bricks = []
         self.brick_grid = []
-        self.reset_bricks()
+        # self.load_default_level()
+
+        self.level_number = 1
+
+        self.heart_levels = [2, 6]
+
+        self.load_custom_level()
 
         self.background_surf = pygame.Surface(self.screen_size)
         self.background_surf.fill(BACKGROUND_COLOR)
@@ -37,8 +45,11 @@ class Layout(ScreenEvents):
         self.frame = 0
 
         self.star_spawn_frame = random.randint(FPS * 60 - 30, FPS * 60 + 30)
+        self.tnt_spawn_frame = random.randint(FPS * 90 - 30, FPS * 90 + 30)
+        # self.star_spawn_frame = 10
+        # self.tnt_spawn_frame = 20
 
-    def reset_bricks(self) -> None:
+    def load_default_level(self) -> None:
 
         self.bricks = []
         self.brick_grid = []
@@ -58,9 +69,55 @@ class Layout(ScreenEvents):
                 x = OFFSET_SIDE + col * (BRICK_WIDTH + BRICK_GAP)
                 y = OFFSET_TOP + row * (BRICK_HEIGHT + BRICK_GAP)
                 bonus = bonuses.get((row, col))
-                brick = Brick(x, y, BRICK_WIDTH, BRICK_HEIGHT, self, bonus=bonus)
+                brick = Brick(x, y, BRICK_WIDTH, BRICK_HEIGHT, self, bonus=bonus, health=BRICK_HEALTH)
                 self.bricks.append(brick)
                 self.brick_grid[-1].append(brick)
+
+    def load_custom_level(self) -> None:
+
+        self.bricks = []
+        self.brick_grid = []
+
+        img = self.get_array_from_image(f'Levels/level_{self.level_number}.png')
+
+        for row in range(ROWS):
+            self.brick_grid.append([])
+            for col in range(COLS):
+                if img[row, col] == 1:
+                    x = OFFSET_SIDE + col * (BRICK_WIDTH + BRICK_GAP)
+                    y = OFFSET_TOP + row * (BRICK_HEIGHT + BRICK_GAP)
+                    brick = Brick(x, y, BRICK_WIDTH, BRICK_HEIGHT, self, health=BRICK_HEALTH)
+                    self.bricks.append(brick)
+                    self.brick_grid[-1].append(brick)
+                elif img[row, col] == 0:
+                    self.brick_grid[-1].append(None)
+                else:
+                    x = OFFSET_SIDE + col * (BRICK_WIDTH + BRICK_GAP)
+                    y = OFFSET_TOP + row * (BRICK_HEIGHT + BRICK_GAP)
+                    brick = Brick(x, y, BRICK_WIDTH, BRICK_HEIGHT, self, health=BRICK_HEALTH, unbreakable=True)
+                    self.bricks.append(brick)
+                    self.brick_grid[-1].append(brick)
+
+        for brick, bonus in zip(random.choices(self.bricks, k=len(self.all_bonuses_names)), self.all_bonuses_names):
+            if bonus == "Live" and self.level_number not in self.heart_levels:
+                continue
+            brick.set_bonus(bonus)
+
+    @staticmethod
+    def get_array_from_image(file: str):
+        img = cv2.imread(file)
+        img = img.mean(axis=2)
+
+        for i in range(ROWS):
+            for j in range(COLS):
+                if img[i, j] == 255:
+                    img[i, j] = 0
+                elif img[i, j] == 0:
+                    img[i, j] = 1
+                else:
+                    img[i, j] = -1
+
+        return img
 
     def get_border_bricks(self) -> list[Brick]:
         border_bricks = []
@@ -68,17 +125,23 @@ class Layout(ScreenEvents):
         for i in range(ROWS):
             for j in range(COLS):
                 brick = self.brick_grid[i][j]
-                if brick.destroyed:
+                if brick is None:
+                    continue
+                if brick.destroyed or brick.unbreakable:
                     continue
 
                 if i == 0 or i == ROWS - 1 or j == 0 or j == COLS - 1:
                     border_bricks.append(brick)
                     continue
 
-                elif any([self.brick_grid[i - 1][j].destroyed,
-                        self.brick_grid[i + 1][j].destroyed,
-                        self.brick_grid[i][j - 1].destroyed,
-                        self.brick_grid[i][j + 1].destroyed]):
+                top_brick = self.brick_grid[i - 1][j]
+                bottom_brick = self.brick_grid[i + 1][j]
+                left_brick = self.brick_grid[i][j - 1]
+                right_brick = self.brick_grid[i][j + 1]
+
+                if None in [top_brick, bottom_brick, left_brick, right_brick]:
+                    border_bricks.append(brick)
+                elif any([top_brick.destroyed, bottom_brick.destroyed, left_brick.destroyed, right_brick.destroyed]):
                     border_bricks.append(brick)
 
         return border_bricks
@@ -95,6 +158,8 @@ class Layout(ScreenEvents):
     def draw_lives(self):
         live_text = self.live_font.render('o' * self.lives, True, (0, 0, 0))
         live_rect = live_text.get_rect(center=self.paddle.rect.center)
+        live_rect.x += self.offset_x
+        live_rect.y += self.offset_y
 
         self.screen.blit(live_text, live_rect)
 
@@ -104,13 +169,24 @@ class Layout(ScreenEvents):
             self.ball.contact_x = 0
 
     def check_win(self) -> None:
-        if len(self.bricks) == 0:
-            lose_text = self.win_lose_font.render('You won!', True, (255, 255, 255))
-            lose_rect = lose_text.get_rect(center=self.screen_center)
+        if len([brick for brick in self.bricks if not brick.unbreakable]) == 0:
+            win_text = self.win_lose_font.render(f'You won level {self.level_number}', True, (255, 255, 255))
+            win_rect = win_text.get_rect(center=self.screen_center)
 
-            self.screen.blit(lose_text, lose_rect)
+            self.screen.blit(win_text, win_rect)
             pygame.display.update()
             pygame.time.delay(2000)
+
+            self.level_number += 1
+
+            if self.level_number > NUMBER_OF_LEVELS:
+                win_text = self.win_lose_font.render('Congratulation!', True, (255, 255, 255))
+                win_rect = win_text.get_rect(midtop=win_rect.midbottom)
+
+                self.screen.blit(win_text, win_rect)
+                pygame.display.update()
+                pygame.time.delay(2000)
+                self.level_number = 1
 
             self.reset_game()
 
@@ -128,18 +204,20 @@ class Layout(ScreenEvents):
             lose_paddle_surf = pygame.Surface(self.paddle.surf.get_size())
             lose_paddle_surf.fill(PADDLE_LOSE_COLOR)
 
-            self.screen.blit(lose_paddle_surf, self.paddle.rect)
+            self.screen.blit(lose_paddle_surf, (self.paddle.rect.x + self.offset_x,
+                                                self.paddle.rect.y + self.offset_y))
 
             self.screen.blit(lose_text, lose_rect)
 
             pygame.display.update()
             pygame.time.delay(2000)
+            self.level_number = 1
 
             self.reset_game()
 
     def reset_game(self):
-        self.reset_bricks()
-        self.lives = LIVES
+        self.load_custom_level()
+        # self.lives = LIVES
         self.paddle.rect.centerx = self.screen_center[0]
         self.ball.lock()
         self.bonuses = []
@@ -147,11 +225,18 @@ class Layout(ScreenEvents):
         self.ball.double_damage_frame = 0
         self.frame = 0
         self.star_spawn_frame = random.randint(FPS * 60 - 30, FPS * 60 + 30)
-
+        self.tnt_spawn_frame = random.randint(FPS * 90 - 30, FPS * 90 + 30)
+        ScreenShaker.reset()
 
     def input(self):
         if self.ball.locked and self.key_pressed(pygame.K_SPACE) and self.ball.launch_frame == 0:
             self.ball.unlock()
+
+        #if self.key_pressed(pygame.K_x):
+        #    self.explode_tnt_brick()
+
+        if self.key_pressed(pygame.K_c):
+            ScreenShaker.shake_screen(10, 10)
 
     def update_bonuses(self):
         new_bonuses = []
@@ -174,10 +259,14 @@ class Layout(ScreenEvents):
 
         self.bonuses = new_bonuses
 
-    def manage_star_brick(self) -> None:
+    def manage_special_brick(self) -> None:
         if self.frame == self.star_spawn_frame:
             star_brick = random.choice([b for b in self.get_border_bricks() if b.bonus is None])
             star_brick.set_brick_star_bonus()
+
+        if self.frame == self.tnt_spawn_frame:
+            tnt_brick = random.choice([b for b in self.get_border_bricks() if b.bonus is None])
+            tnt_brick.set_brick_tnt_bonus()
 
     def update_frame(self):
         if not self.ball.locked:
@@ -185,13 +274,18 @@ class Layout(ScreenEvents):
         else:
             self.ball.launch_frame = max(self.ball.launch_frame - 1, 0)
 
+    def explode_tnt_brick(self):
+        for brick in self.bricks:
+            if brick.bonus == 'TNT':
+                brick.explode_surrounded_bricks()
+
     def update(self) -> None:
         """Run every frame"""
         self.draw_background()
         self.input()
         self.paddle.update()
         self.update_bricks()
-        self.manage_star_brick()
+        self.manage_special_brick()
         self.ball.update()
         self.update_bonuses()
         self.check_lose()

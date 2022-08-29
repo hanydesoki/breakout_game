@@ -1,9 +1,10 @@
 import pygame
 
 from .screen_events import ScreenEvents
+from .screen_shaker import ScreenShaker
 
 
-class Bonus(ScreenEvents):
+class Bonus(ScreenEvents, ScreenShaker):
 
     speed = 2
 
@@ -19,7 +20,7 @@ class Bonus(ScreenEvents):
         self.rect.centery += self.speed
 
     def draw(self):
-        self.screen.blit(self.image, self.rect)
+        self.screen.blit(self.image, (self.rect.x + self.offset_x, self.rect.y + self.offset_y))
 
     def update(self):
         self.move()
