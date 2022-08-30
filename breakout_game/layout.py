@@ -186,8 +186,6 @@ class Layout(ScreenEvents, ScreenShaker):
 
             self.level_number += 1
 
-            self.reset_game(reset_live=False)
-
             if self.level_number > NUMBER_OF_LEVELS:
                 win_text = self.win_lose_font.render('Congratulation!', True, (255, 255, 255))
                 win_rect = win_text.get_rect(midtop=win_rect.midbottom)
@@ -198,6 +196,8 @@ class Layout(ScreenEvents, ScreenShaker):
                 self.level_number = 1
 
                 self.reset_game()
+
+            self.reset_game(reset_live=False)
 
     def lose_life(self, reset: bool = True) -> None:
         self.lives -= 1
@@ -285,12 +285,15 @@ class Layout(ScreenEvents, ScreenShaker):
         self.bonuses = new_bonuses
 
     def manage_special_brick(self) -> None:
-        if self.frame == self.star_spawn_frame:
-            star_brick = random.choice([b for b in self.get_border_bricks() if b.bonus is None])
+        bricks = [b for b in self.get_border_bricks() if b.bonus is None]
+        if self.frame == self.star_spawn_frame and bricks:
+            star_brick = random.choice(bricks)
             star_brick.set_brick_star_bonus()
 
-        if self.frame == self.tnt_spawn_frame:
-            tnt_brick = random.choice([b for b in self.get_border_bricks() if b.bonus is None])
+        bricks = [b for b in self.get_border_bricks() if b.bonus is None]
+
+        if self.frame == self.tnt_spawn_frame and bricks:
+            tnt_brick = random.choice(bricks)
             tnt_brick.set_brick_tnt_bonus()
 
     def update_frame(self):

@@ -221,7 +221,9 @@ class SecondBall(Ball):
     def __init__(self, x: int, y: int, radius: int, layout):
         super().__init__(x, y, radius, layout)
         self.unlock()
-        self.y_vel = -self.layout.ball.y_vel
+        self.velocity = SECOND_BALL_VELOCITY
+        self.x_vel = self.layout.ball.x_vel * (SECOND_BALL_VELOCITY / BALL_VELOCITY)
+        self.y_vel = -self.layout.ball.y_vel * (SECOND_BALL_VELOCITY / BALL_VELOCITY)
         self.move_frame = 2
 
     def draw(self) -> None:
