@@ -215,3 +215,27 @@ class Ball(ScreenEvents, ScreenShaker):
         self.move()
         self.draw()
 
+
+class SecondBall(Ball):
+
+    def __init__(self, x: int, y: int, radius: int, layout):
+        super().__init__(x, y, radius, layout)
+        self.unlock()
+        self.y_vel = -self.layout.ball.y_vel
+        self.move_frame = 2
+
+    def draw(self) -> None:
+        center = (self.x + self.offset_x, self.y + self.offset_y)
+        pygame.draw.circle(surface=self.screen, color=SECOND_BALL_COLOR, center=center, radius=self.radius)
+        pygame.draw.circle(surface=self.screen, color="red", center=center, radius=self.radius, width=3)
+
+    def unlock(self) -> None:
+        self.locked = False
+        self.sticky = False
+
+    def move(self) -> None:
+        self.move_frame = max(self.move_frame - 1, 0)
+        if self.move_frame == 0:
+            super().move()
+
+

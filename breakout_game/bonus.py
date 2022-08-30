@@ -71,12 +71,11 @@ class StarBonus(Bonus):
         self.image.set_colorkey((255, 255, 255))
         self.rect = self.image.get_rect(center=(x, y))
 
-
 BONUS_DICT = {
     'Lock': LockBonus,
     'Damage': DamageBonus,
     'Live': LiveBonus,
     'Antilive': AntiLiveBonus,
-    'Star': StarBonus
+    'Star': StarBonus,
 }
 

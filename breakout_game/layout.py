@@ -9,13 +9,14 @@ from .settings import *
 from .bonus import LockBonus, DamageBonus, LiveBonus, AntiLiveBonus, StarBonus
 from .screen_shaker import ScreenShaker
 from .utils import color_gradient
+from .pause_menu import PauseMenu
 
 import random
 
 
 class Layout(ScreenEvents, ScreenShaker):
 
-    all_bonuses_names = ['Lock', 'Damage', 'Live', 'Antilive']
+    all_bonuses_names = ['Lock', 'Damage', 'Live', 'Antilive', 'Secondball']
 
     def __init__(self):
         super().__init__()
@@ -27,7 +28,7 @@ class Layout(ScreenEvents, ScreenShaker):
 
         self.level_number = 1
 
-        self.heart_levels = [1, 3, 6]
+        self.heart_levels = [1, 3, 5]
 
         self.load_custom_level()
 
@@ -48,6 +49,8 @@ class Layout(ScreenEvents, ScreenShaker):
         self.tnt_spawn_frame = random.randint(FPS * 90 - 30, FPS * 90 + 30)
         # self.star_spawn_frame = 10
         # self.tnt_spawn_frame = 20
+
+        self.pause_menu = PauseMenu(layout=self)
 
     def load_default_level(self) -> None:
 
@@ -98,7 +101,8 @@ class Layout(ScreenEvents, ScreenShaker):
                     self.bricks.append(brick)
                     self.brick_grid[-1].append(brick)
 
-        for brick, bonus in zip(random.choices(self.bricks, k=len(self.all_bonuses_names)), self.all_bonuses_names):
+        for brick, bonus in zip(random.choices([b for b in self.bricks if not b.unbreakable],
+                                               k=len(self.all_bonuses_names)), self.all_bonuses_names):
             if bonus == "Live" and self.level_number not in self.heart_levels:
                 continue
             brick.set_bonus(bonus)
@@ -253,7 +257,16 @@ class Layout(ScreenEvents, ScreenShaker):
     def update_bonuses(self):
         new_bonuses = []
         for bonus in self.bonuses:
-            bonus.update()
+
+            if bonus.__class__.__name__ == "SecondBall":
+                if bonus.y < self.screen_height + 10:
+                    if not self.ball.locked:
+                        bonus.update()
+                    new_bonuses.append(bonus)
+                    bonus.draw()
+                continue
+            else:
+                bonus.update()
 
             if bonus.rect.colliderect(self.paddle.rect):
                 if isinstance(bonus, LockBonus):
@@ -304,3 +317,4 @@ class Layout(ScreenEvents, ScreenShaker):
         self.check_win()
         self.draw_lives()
         self.update_frame()
+        self.pause_menu.update()
