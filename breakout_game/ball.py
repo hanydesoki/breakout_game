@@ -9,7 +9,6 @@ from .screen_shaker import ScreenShaker
 
 from typing import Union
 import random
-
 import math
 
 
@@ -214,7 +213,7 @@ class Ball(ScreenEvents, ScreenShaker):
         self.manage_bonus_frames()
         self.move()
         self.draw()
-        
+
 
 class SecondBall(Ball):
 
