@@ -214,7 +214,7 @@ class Ball(ScreenEvents, ScreenShaker):
         self.manage_bonus_frames()
         self.move()
         self.draw()
-
+        
 
 class SecondBall(Ball):
 

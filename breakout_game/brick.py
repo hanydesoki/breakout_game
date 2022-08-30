@@ -85,9 +85,11 @@ class Brick(ScreenEvents, ScreenShaker):
                         self.explode_surrounded_bricks()
                     elif self.bonus == 'Secondball':
                         from .ball import SecondBall
-                        self.layout.bonuses.append(SecondBall(self.rect.centerx, self.rect.centery, BALL_RADIUS, self.layout))
+                        self.layout.bonuses.append(SecondBall(self.rect.centerx, self.rect.centery, BALL_RADIUS,
+                                                              self.layout))
                     else:
                         self.layout.bonuses.append(BONUS_DICT[self.bonus](*self.rect.center, self.layout))
+                    self.bonus = None
 
     def set_bonus(self, bonus: str) -> None:
         self.bonus = bonus
